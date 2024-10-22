@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -46,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
   double? _selectedSpeed; // Variable to store selected speed
   final List<double> speedOptions = [1.0, 2.0, 3.0, 4.0, 5.0]; // Speed options
   ColorLabel? _selectedColor;
+  List<Map<String, dynamic>> _fishList = [];
 
   void _incrementCounter() {
     setState(() {
@@ -69,36 +72,69 @@ class _MyHomePageState extends State<MyHomePage> {
               height: 300,
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: Colors.blue, // Border color
-                  width: 3.0, // Border width
+                  color: Colors.blue,
+                  width: 3.0,
                 ),
               ),
-              child: Text(
-                'Fish here',
-                style: Theme.of(context).textTheme.headlineMedium,
+              child: Stack(
+                children: _fishList.map((fish) {
+                  return Positioned(
+                    left: Random().nextDouble() *
+                        250, // Random position for each fish
+                    top: Random().nextDouble() * 250,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      color: fish['color'], // Use fish's color
+                      child: Image.asset('assets/images/BlueFish.png'),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             SizedBox(
               height: 10,
             ),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: DoNothingAction.new,
-                  child: Text('Add Fish'),
+                  onPressed: () {
+                    print(_fishList.length);
+                    if (_selectedSpeed != null &&
+                        _selectedColor != null &&
+                        _fishList.length < 10) {
+                      setState(() {
+                        _fishList.add({
+                          'speed': _selectedSpeed,
+                          'color': _selectedColor!.color,
+                        });
+                      });
+                    }
+                  },
+                  child: const Text('Add Fish'),
                 ),
-                SizedBox(
+                const SizedBox(
                   width: 10,
                 ),
                 ElevatedButton(
-                  onPressed: DoNothingAction.new,
-                  child: Text('Kill Fish'),
+                  onPressed: () {
+                    if (_fishList.isNotEmpty) {
+                      setState(() {
+                        // Generate a random index between 0 and _fishList.length - 1
+                        final randomIndex = Random().nextInt(_fishList.length);
+
+                        // Remove fish at the random index
+                        _fishList.removeAt(randomIndex);
+                      });
+                    }
+                  },
+                  child: const Text('Kill Fish'),
                 ),
-                SizedBox(
+                const SizedBox(
                   width: 10,
                 ),
-                ElevatedButton(
+                const ElevatedButton(
                   onPressed: DoNothingAction.new,
                   child: Text('Save Settings'),
                 ),
