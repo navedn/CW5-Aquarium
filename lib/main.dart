@@ -44,52 +44,56 @@ enum ColorLabel {
 }
 
 class Fish {
-  double x;
-  double y;
-  double dx;
-  double dy;
-  final double speed;
-  final Color color;
+  double x; // Horizontal position
+  double y; // Vertical position
+  double dx; // Change in x direction
+  double dy; // Change in y direction
+  final double speed; // Speed of the fish
+  final Color color; // Color of the fish
 
   Fish({
     required this.x,
     required this.y,
     required this.speed,
     required this.color,
-  })  : dx = Random().nextBool()
-            ? 1
-            : -1 * (speed / 2), // Direction based on speed
-        dy = Random().nextBool()
-            ? 1
-            : -1 * (speed / 2); // Direction based on speed
+  })  : dx = Random().nextDouble() * 2 -
+            1, // Random horizontal direction (-1 to 1)
+        dy = Random().nextDouble() * 2 -
+            1; // Random vertical direction (-1 to 1)
+
+  double get angle => atan2(-dy, -dx); // Calculate angle based on direction
 
   void updatePosition(double width, double height) {
-    x += dx; // Apply speed directly as direction is already set
-    y += dy;
+    x += dx * speed; // Move fish based on direction and speed
+    y += dy * speed;
 
-    // Check boundaries and reverse direction
+    // Check boundaries and reverse direction if necessary
     if (x <= 0) {
       x = 0; // Reset to left edge
-      dx = speed; // Set direction based on speed
+      dx = -dx; // Reverse direction
     } else if (x >= width - 30) {
       x = width - 30; // Reset to right edge
-      dx = -speed; // Set direction based on speed
+      dx = -dx; // Reverse direction
     }
 
     if (y <= 0) {
       y = 0; // Reset to top edge
-      dy = speed; // Set direction based on speed
+      dy = -dy; // Reverse direction
     } else if (y >= height - 30) {
       y = height - 30; // Reset to bottom edge
-      dy = -speed; // Set direction based on speed
+      dy = -dy; // Reverse direction
     }
+
+    // Ensure the fish stays within the boundaries
+    x = x.clamp(0, width - 30);
+    y = y.clamp(0, height - 30);
   }
 }
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   double? _selectedSpeed; // Variable to store selected speed
-  final List<double> speedOptions = [0.5, 1.0, 1.5, 2.0, 2.5]; // Speed options
+  final List<double> speedOptions = [0.25, 0.5, 0.75, 1.0]; // Speed options
   ColorLabel? _selectedColor;
   List<Fish> _fishList = []; // Change to List<Fish>
   Timer? _timer;
@@ -115,6 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
         speed: _selectedSpeed!, // Use the selected speed
         color: _selectedColor!.color,
       ));
+
       _startTimer(); // Start timer if not already started
     }
   }
@@ -159,24 +164,34 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               child: Stack(
                 children: _fishList.map((fish) {
-                  return Positioned(
-                    left: fish.x, // Use the stored x position
-                    top: fish.y, // Use the stored y position
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      child: ColorFiltered(
-                        colorFilter: ColorFilter.mode(
-                          fish.color
-                              .withOpacity(1.0), // Use the selected fish color
-                          BlendMode.srcIn, // Blend mode to apply
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: -0.1, end: 0.1),
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                    builder: (context, swayAngle, child) {
+                      return Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..translate(fish.x, fish.y)
+                          ..rotateZ(fish.angle +
+                              swayAngle), // Rotate based on angle and sway
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          child: ColorFiltered(
+                            colorFilter: ColorFilter.mode(
+                              fish.color.withOpacity(
+                                  1.0), // Use the selected fish color
+                              BlendMode.srcIn, // Blend mode to apply
+                            ),
+                            child: Image.asset(
+                              'assets/images/BlueFish.png',
+                              // Make sure the image color doesn't interfere
+                            ),
+                          ),
                         ),
-                        child: Image.asset(
-                          'assets/images/BlueFish.png',
-                          // Make sure the image color doesn't interfere
-                        ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 }).toList(),
               ),
