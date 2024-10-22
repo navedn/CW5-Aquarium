@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 void main() {
@@ -43,17 +43,98 @@ enum ColorLabel {
   final Color color;
 }
 
+class Fish {
+  double x;
+  double y;
+  double dx;
+  double dy;
+  final double speed;
+  final Color color;
+
+  Fish({
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.color,
+  })  : dx = Random().nextBool()
+            ? 1
+            : -1 * (speed / 2), // Direction based on speed
+        dy = Random().nextBool()
+            ? 1
+            : -1 * (speed / 2); // Direction based on speed
+
+  void updatePosition(double width, double height) {
+    x += dx; // Apply speed directly as direction is already set
+    y += dy;
+
+    // Check boundaries and reverse direction
+    if (x <= 0) {
+      x = 0; // Reset to left edge
+      dx = speed; // Set direction based on speed
+    } else if (x >= width - 30) {
+      x = width - 30; // Reset to right edge
+      dx = -speed; // Set direction based on speed
+    }
+
+    if (y <= 0) {
+      y = 0; // Reset to top edge
+      dy = speed; // Set direction based on speed
+    } else if (y >= height - 30) {
+      y = height - 30; // Reset to bottom edge
+      dy = -speed; // Set direction based on speed
+    }
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   double? _selectedSpeed; // Variable to store selected speed
-  final List<double> speedOptions = [1.0, 2.0, 3.0, 4.0, 5.0]; // Speed options
+  final List<double> speedOptions = [0.5, 1.0, 1.5, 2.0, 2.5]; // Speed options
   ColorLabel? _selectedColor;
-  List<Map<String, dynamic>> _fishList = [];
+  List<Fish> _fishList = []; // Change to List<Fish>
+  Timer? _timer;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      setState(() {
+        for (var fish in _fishList) {
+          fish.updatePosition(300, 300); // Update fish position
+        }
+      });
     });
+  }
+
+  void _addFish() {
+    if (_selectedSpeed != null &&
+        _selectedColor != null &&
+        _fishList.length < 10) {
+      final random = Random();
+      _fishList.add(Fish(
+        x: random.nextDouble() * 250, // Random initial x position
+        y: random.nextDouble() * 250, // Random initial y position
+        speed: _selectedSpeed!, // Use the selected speed
+        color: _selectedColor!.color,
+      ));
+      _startTimer(); // Start timer if not already started
+    }
+  }
+
+  void _removeFish() {
+    if (_fishList.isNotEmpty) {
+      setState(() {
+        final randomIndex = Random().nextInt(_fishList.length);
+        _fishList.removeAt(randomIndex); // Remove a Fish object
+        if (_fishList.isEmpty) {
+          _timer?.cancel(); // Stop the timer if no fish are left
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancel the timer when disposing
+    super.dispose();
   }
 
   @override
@@ -79,61 +160,41 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Stack(
                 children: _fishList.map((fish) {
                   return Positioned(
-                    left: Random().nextDouble() *
-                        250, // Random position for each fish
-                    top: Random().nextDouble() * 250,
+                    left: fish.x, // Use the stored x position
+                    top: fish.y, // Use the stored y position
                     child: Container(
                       width: 30,
                       height: 30,
-                      color: fish['color'], // Use fish's color
-                      child: Image.asset('assets/images/BlueFish.png'),
+                      child: ColorFiltered(
+                        colorFilter: ColorFilter.mode(
+                          fish.color
+                              .withOpacity(1.0), // Use the selected fish color
+                          BlendMode.srcIn, // Blend mode to apply
+                        ),
+                        child: Image.asset(
+                          'assets/images/BlueFish.png',
+                          // Make sure the image color doesn't interfere
+                        ),
+                      ),
                     ),
                   );
                 }).toList(),
               ),
             ),
-            SizedBox(
-              height: 10,
-            ),
+            SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () {
-                    print(_fishList.length);
-                    if (_selectedSpeed != null &&
-                        _selectedColor != null &&
-                        _fishList.length < 10) {
-                      setState(() {
-                        _fishList.add({
-                          'speed': _selectedSpeed,
-                          'color': _selectedColor!.color,
-                        });
-                      });
-                    }
-                  },
+                  onPressed: _addFish,
                   child: const Text('Add Fish'),
                 ),
-                const SizedBox(
-                  width: 10,
-                ),
+                const SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () {
-                    if (_fishList.isNotEmpty) {
-                      setState(() {
-                        // Generate a random index between 0 and _fishList.length - 1
-                        final randomIndex = Random().nextInt(_fishList.length);
-
-                        // Remove fish at the random index
-                        _fishList.removeAt(randomIndex);
-                      });
-                    }
-                  },
+                  onPressed: _removeFish,
                   child: const Text('Kill Fish'),
                 ),
-                const SizedBox(
-                  width: 10,
-                ),
+                const SizedBox(width: 10),
                 const ElevatedButton(
                   onPressed: DoNothingAction.new,
                   child: Text('Save Settings'),
@@ -195,11 +256,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           Container(
                             width: 16,
                             height: 16,
-                            color: colorLabel.color, // Color preview box
+                            color: colorLabel.color,
                             margin: const EdgeInsets.only(right: 10),
                           ),
                           Text(
-                            colorLabel.label, // Display color name
+                            colorLabel.label,
                             style: TextStyle(color: Colors.purple),
                           ),
                         ],
@@ -217,7 +278,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
