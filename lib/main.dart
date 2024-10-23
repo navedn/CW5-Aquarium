@@ -114,11 +114,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _loadSettings() async {
     final settings = await DatabaseHelper().loadSettings();
+
+    // Check if settings are not null and contain valid values
     if (settings != null) {
       setState(() {
-        _selectedSpeed = settings['speed'];
-        _selectedColor = ColorLabel.values[settings['color']];
+        _selectedSpeed = settings['speed']; // Load saved speed
+        // Ensure the color index is valid to avoid any out-of-bounds errors
+        _selectedColor = settings['color'] >= 0 &&
+                settings['color'] < ColorLabel.values.length
+            ? ColorLabel.values[settings['color']]
+            : ColorLabel
+                .values[settings['color']]; // Default to green if invalid
       });
+    } else {
+      // Set default values if no settings were loaded
+      _selectedSpeed = 1.0; // Set a sensible default
+      _selectedColor = ColorLabel.green; // Set a sensible default
     }
 
     // Load individual fish details
