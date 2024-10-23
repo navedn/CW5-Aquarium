@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:aquarium/database_helper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -91,12 +92,45 @@ class Fish {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  int _fishCount = 0; // Store number of fish
   double? _selectedSpeed; // Variable to store selected speed
-  final List<double> speedOptions = [0.25, 0.5, 0.75, 1.0]; // Speed options
+  final List<double> speedOptions = [
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    8.0,
+    16.0
+  ]; // Speed options
   ColorLabel? _selectedColor;
   List<Fish> _fishList = []; // Change to List<Fish>
   Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings(); // Load settings when the app starts
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await DatabaseHelper().loadSettings();
+    if (settings != null) {
+      setState(() {
+        _selectedSpeed = settings['speed'];
+        _selectedColor = ColorLabel.values[settings['color']];
+      });
+    }
+
+    // Load individual fish details
+    final loadedFish = await DatabaseHelper().loadFish();
+    setState(() {
+      _fishList = loadedFish;
+      _fishCount = _fishList.length;
+      if (_fishList.isNotEmpty) {
+        _startTimer(); // Restart animation
+      }
+    });
+  }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
@@ -119,6 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
         speed: _selectedSpeed!, // Use the selected speed
         color: _selectedColor!.color,
       ));
+      _fishCount++;
 
       _startTimer(); // Start timer if not already started
     }
@@ -129,11 +164,22 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         final randomIndex = Random().nextInt(_fishList.length);
         _fishList.removeAt(randomIndex); // Remove a Fish object
+        _fishCount--;
         if (_fishList.isEmpty) {
           _timer?.cancel(); // Stop the timer if no fish are left
         }
       });
     }
+  }
+
+  void _saveSettings() {
+    DatabaseHelper().saveSettings(
+      _fishCount,
+      _selectedSpeed ?? 0.25,
+      _selectedColor?.index ?? 0,
+    );
+
+    DatabaseHelper().saveFish(_fishList); // Save individual fish attributes
   }
 
   @override
@@ -210,9 +256,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('Kill Fish'),
                 ),
                 const SizedBox(width: 10),
-                const ElevatedButton(
-                  onPressed: DoNothingAction.new,
-                  child: Text('Save Settings'),
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  onPressed: _saveSettings,
                 ),
               ],
             ),
