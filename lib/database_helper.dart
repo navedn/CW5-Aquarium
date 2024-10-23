@@ -50,15 +50,33 @@ class DatabaseHelper {
 
   Future<void> saveSettings(int fishCount, double speed, int color) async {
     final db = await database;
-    await db.insert(
-      'settings',
-      {
-        'fish_count': fishCount,
-        'speed': speed,
-        'color': color,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+
+    // Check if settings already exist
+    final existingSettings = await db.query('settings', limit: 1);
+
+    if (existingSettings.isNotEmpty) {
+      // Update existing row
+      await db.update(
+        'settings',
+        {
+          'fish_count': fishCount,
+          'speed': speed,
+          'color': color,
+        },
+        where: 'id = ?',
+        whereArgs: [existingSettings.first['id']],
+      );
+    } else {
+      // Insert new settings row if none exist
+      await db.insert(
+        'settings',
+        {
+          'fish_count': fishCount,
+          'speed': speed,
+          'color': color,
+        },
+      );
+    }
   }
 
   Future<Map<String, dynamic>?> loadSettings() async {

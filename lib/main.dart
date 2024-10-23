@@ -120,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     )..repeat(reverse: true); // Repeat the animation back and forth
 
     // Define the sway animation to go from -0.1 to 0.1 radians
-    _swayAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
+    _swayAnimation = Tween<double>(begin: -0.4, end: 0.4).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
