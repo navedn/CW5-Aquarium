@@ -91,7 +91,7 @@ class Fish {
   }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _fishCount = 0; // Store number of fish
   double? _selectedSpeed; // Variable to store selected speed
   final List<double> speedOptions = [
@@ -106,9 +106,24 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Fish> _fishList = []; // Change to List<Fish>
   Timer? _timer;
 
+  late AnimationController _controller;
+  late Animation<double> _swayAnimation;
+
   @override
   void initState() {
     super.initState();
+
+// Initialize the animation controller and set it to repeat indefinitely
+    _controller = AnimationController(
+      vsync: this, // Required for animation
+      duration: const Duration(seconds: 1), // Duration for one sway cycle
+    )..repeat(reverse: true); // Repeat the animation back and forth
+
+    // Define the sway animation to go from -0.1 to 0.1 radians
+    _swayAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
     _loadSettings(); // Load settings when the app starts
   }
 
@@ -195,6 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
+    _controller.dispose();
     _timer?.cancel(); // Cancel the timer when disposing
     super.dispose();
   }
@@ -221,30 +237,24 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               child: Stack(
                 children: _fishList.map((fish) {
-                  return TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: -0.1, end: 0.1),
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeInOut,
-                    builder: (context, swayAngle, child) {
+                  return AnimatedBuilder(
+                    animation: _swayAnimation, // Link to sway animation
+                    builder: (context, child) {
                       return Transform(
                         alignment: Alignment.center,
                         transform: Matrix4.identity()
-                          ..translate(fish.x, fish.y)
+                          ..translate(fish.x, fish.y) // Position the fish
                           ..rotateZ(fish.angle +
-                              swayAngle), // Rotate based on angle and sway
+                              _swayAnimation.value), // Apply sway rotation
                         child: Container(
                           width: 30,
                           height: 30,
                           child: ColorFiltered(
                             colorFilter: ColorFilter.mode(
-                              fish.color.withOpacity(
-                                  1.0), // Use the selected fish color
-                              BlendMode.srcIn, // Blend mode to apply
+                              fish.color.withOpacity(1.0), // Fish color
+                              BlendMode.srcIn,
                             ),
-                            child: Image.asset(
-                              'assets/images/BlueFish.png',
-                              // Make sure the image color doesn't interfere
-                            ),
+                            child: Image.asset('assets/images/BlueFish.png'),
                           ),
                         ),
                       );
